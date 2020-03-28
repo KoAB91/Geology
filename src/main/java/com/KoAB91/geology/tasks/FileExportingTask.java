@@ -33,70 +33,71 @@ public class FileExportingTask implements Runnable {
     public void run() {
         excelFile.setProcessingStatus(ProcessStatus.IN_PROGRESS);
         excelFileRepository.save(excelFile);
-        int exportResult = exportFile();
-        if (exportResult == 1) {
-            excelFile.setProcessingStatus(ProcessStatus.DONE);
-        } else {
-            excelFile.setProcessingStatus(ProcessStatus.ERROR);
-        }
+
+        ProcessStatus status = exportFile();
+        excelFile.setProcessingStatus(status);
         excelFileRepository.save(excelFile);
     }
 
-    private int exportFile() {
-        int status;
-        ByteArrayOutputStream bos = null;
+    private ProcessStatus exportFile() {
+        ProcessStatus status;
+
+        ByteArrayOutputStream outputStream = null;
+
         HSSFWorkbook book = new HSSFWorkbook();
         Sheet sheet = book.createSheet("Sections");
 
         // create table header
-        Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Section name");
-        header.createCell(1).setCellValue("Class 1 name");
-        header.createCell(2).setCellValue("Class 1 code");
-        header.createCell(3).setCellValue("Class 2 name");
-        header.createCell(4).setCellValue("Class 2 code");
+        int rowIndex = 0;
+        Row header = sheet.createRow(rowIndex++);
+        String[] cellNames = { "Section name", "Class 1 name", "Class 1 code", "Class 2 name", "Class 2 code" };
+        for (int i = 0; i < cellNames.length; i++) {
+            String cellName = cellNames[i];
+            header.createCell(i).setCellValue(cellName);
+        }
 
         try {
             List<SectionDTO> sectionsDTO = sectionService.get();
             if (sectionsDTO == null || sectionsDTO.isEmpty()) {
-                status = 1;
+                status = ProcessStatus.DONE;
                 return status;
             }
-            int rowCounter = 1;
+
             for (SectionDTO sectionDTO : sectionsDTO) {
-                Row row = sheet.createRow(rowCounter);
-                Cell cell = row.createCell(0);
+                Row row = sheet.createRow(rowIndex++);
+
+                int cellIndex = 0;
+                Cell cell = row.createCell(cellIndex++);
                 cell.setCellValue(sectionDTO.getName());
 
                 List<GeoClassDTO> geoClassesDTO = sectionDTO.getGeologicalClasses();
                 if (geoClassesDTO == null || geoClassesDTO.isEmpty()) {
                     continue;
                 }
-                int cellCounter = 1;
-                for (GeoClassDTO geoClassDTO : geoClassesDTO) {
-                    cell = row.createCell(cellCounter);
-                    cell.setCellValue(geoClassDTO.getName());
-                    cellCounter++;
-                    cell = row.createCell(cellCounter);
-                    cell.setCellValue(geoClassDTO.getCode());
-                    cellCounter++;
-                }
 
-                rowCounter++;
+                for (GeoClassDTO geoClassDTO : geoClassesDTO) {
+                    cell = row.createCell(cellIndex++);
+                    cell.setCellValue(geoClassDTO.getName());
+                    cell = row.createCell(cellIndex++);
+                    cell.setCellValue(geoClassDTO.getCode());
+                }
             }
-            bos = new ByteArrayOutputStream();
-            book.write(bos);
-            byte[] fileData = bos.toByteArray();
+
+            outputStream = new ByteArrayOutputStream();
+            book.write(outputStream);
+            byte[] fileData = outputStream.toByteArray();
+
             excelFile.setData(fileData);
             excelFileRepository.save(excelFile);
-            status = 1;
+
+            status = ProcessStatus.DONE;
         } catch (Exception e) {
-            status = 0;
+            status = ProcessStatus.ERROR;
         } finally {
             try {
                 book.close();
-                if (bos != null) {
-                    bos.close();
+                if (outputStream != null) {
+                    outputStream.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();

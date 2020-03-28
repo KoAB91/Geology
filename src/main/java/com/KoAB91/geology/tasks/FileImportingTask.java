@@ -37,17 +37,15 @@ public class FileImportingTask implements Runnable {
     public void run() {
         excelFile.setProcessingStatus(ProcessStatus.IN_PROGRESS);
         excelFileRepository.save(excelFile);
-        int importResult = importFile();
-        if (importResult == 1){
-            excelFile.setProcessingStatus(ProcessStatus.DONE);
-        } else {
-            excelFile.setProcessingStatus(ProcessStatus.ERROR);
-        }
+
+        ProcessStatus status = importFile();
+        excelFile.setProcessingStatus(status);
+
         excelFileRepository.save(excelFile);
     }
 
-    private int importFile() {
-        int status;
+    private ProcessStatus importFile() {
+        ProcessStatus status;
         HSSFWorkbook myExcelBook = null;
 
         try {
@@ -109,10 +107,10 @@ public class FileImportingTask implements Runnable {
                 }
             }
 
-            status = 1;
+            status = ProcessStatus.DONE;
             myExcelBook.close();
         } catch (Exception e) {
-            status = 0;
+            status = ProcessStatus.ERROR;
         } finally {
             try {
                 if (myExcelBook != null) {
