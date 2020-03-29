@@ -12,7 +12,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -46,11 +45,9 @@ public class FileImportingTask implements Runnable {
 
     private ProcessStatus importFile() {
         ProcessStatus status;
-        HSSFWorkbook myExcelBook = null;
 
-        try {
-            MultipartFile file = new MockMultipartFile(excelFile.getFileName(), excelFile.getFileName(), excelFile.getFileFormat(), excelFile.getData());
-            myExcelBook = new HSSFWorkbook(file.getInputStream());
+        MultipartFile file = new MockMultipartFile(excelFile.getFileName(), excelFile.getFileName(), excelFile.getFileFormat(), excelFile.getData());
+        try (HSSFWorkbook myExcelBook = new HSSFWorkbook(file.getInputStream())) {
 
             HSSFSheet myExcelSheet = myExcelBook.getSheetAt(0);
             Iterator<Row> rowIterator = myExcelSheet.iterator();
@@ -85,7 +82,7 @@ public class FileImportingTask implements Runnable {
                         break;
                     }
 
-                    if (!cellIterator.hasNext()){
+                    if (!cellIterator.hasNext()) {
                         break;
                     }
 
@@ -108,18 +105,11 @@ public class FileImportingTask implements Runnable {
             }
 
             status = ProcessStatus.DONE;
-            myExcelBook.close();
+
         } catch (Exception e) {
             status = ProcessStatus.ERROR;
-        } finally {
-            try {
-                if (myExcelBook != null) {
-                    myExcelBook.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+
         return status;
     }
 }

@@ -6,13 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @Controller
 @RequestMapping("/files")
@@ -25,15 +24,26 @@ public class ExcelFileController {
 
     @PostMapping("/import")
     @ResponseBody
-    public Integer uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<Integer> uploadFile(@RequestParam("file") MultipartFile file) {
         ExcelFile excelFile = excelFileService.save(file);
-        return excelFile.getId();
+        if (excelFile == null) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+        return new ResponseEntity<>(excelFile.getId(), HttpStatus.OK);
     }
 
     @GetMapping("/import/{id}")
     @ResponseBody
-    public String getImportStatus(@PathVariable Integer id) {
-        return excelFileService.getStatus(id);
+    public ResponseEntity<String> getImportStatus(@PathVariable Integer id) {
+        String status = excelFileService.getStatus(id);
+        if (status == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
 
     // export
@@ -47,8 +57,14 @@ public class ExcelFileController {
 
     @GetMapping("/export/{id}")
     @ResponseBody
-    public String getExportStatus(@PathVariable Integer id) {
-        return excelFileService.getStatus(id);
+    public ResponseEntity<String> getExportStatus(@PathVariable Integer id) {
+        String status = excelFileService.getStatus(id);
+        if (status == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
 
 

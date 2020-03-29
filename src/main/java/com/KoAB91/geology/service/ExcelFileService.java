@@ -35,15 +35,20 @@ public class ExcelFileService {
     public String getStatus(Integer fileId) {
         ExcelFile excelFile = getExcelFile(fileId);
         if (excelFile == null) {
-            return "File not found.";
+            return null;
         }
         return convertStatusToResponse(excelFile.getProcessingStatus());
     }
 
-    public ExcelFile save(MultipartFile file) throws IOException {
+    public ExcelFile save(MultipartFile file) {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
-        ExcelFile excelFile = new ExcelFile(fileName, file.getContentType(), file.getBytes(), FileType.IMPORT);
+        ExcelFile excelFile = null;
+        try {
+            excelFile = new ExcelFile(fileName, file.getContentType(), file.getBytes(), FileType.IMPORT);
+        } catch (IOException e) {
+           return null;
+        }
         excelFile = excelFileRepository.save(excelFile);
 
         FileImportingTask importTaskAsync = new FileImportingTask(excelFile, excelFileRepository, sectionService, geoClassService);

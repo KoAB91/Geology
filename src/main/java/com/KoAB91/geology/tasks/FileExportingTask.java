@@ -12,7 +12,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 
@@ -42,21 +41,17 @@ public class FileExportingTask implements Runnable {
     private ProcessStatus exportFile() {
         ProcessStatus status;
 
-        ByteArrayOutputStream outputStream = null;
+        try (HSSFWorkbook book = new HSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Sections");
 
-        HSSFWorkbook book = new HSSFWorkbook();
-        Sheet sheet = book.createSheet("Sections");
-
-        // create table header
-        int rowIndex = 0;
-        Row header = sheet.createRow(rowIndex++);
-        String[] cellNames = { "Section name", "Class 1 name", "Class 1 code", "Class 2 name", "Class 2 code" };
-        for (int i = 0; i < cellNames.length; i++) {
-            String cellName = cellNames[i];
-            header.createCell(i).setCellValue(cellName);
-        }
-
-        try {
+            // create table header
+            int rowIndex = 0;
+            Row header = sheet.createRow(rowIndex++);
+            String[] cellNames = {"Section name", "Class 1 name", "Class 1 code", "Class 2 name", "Class 2 code"};
+            for (int i = 0; i < cellNames.length; i++) {
+                String cellName = cellNames[i];
+                header.createCell(i).setCellValue(cellName);
+            }
             List<SectionDTO> sectionsDTO = sectionService.get();
             if (sectionsDTO == null || sectionsDTO.isEmpty()) {
                 status = ProcessStatus.DONE;
@@ -83,25 +78,20 @@ public class FileExportingTask implements Runnable {
                 }
             }
 
-            outputStream = new ByteArrayOutputStream();
-            book.write(outputStream);
-            byte[] fileData = outputStream.toByteArray();
-
-            excelFile.setData(fileData);
-            excelFileRepository.save(excelFile);
+            byte[] fileData = null;
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                book.write(outputStream);
+                fileData = outputStream.toByteArray();
+            }
+            if (fileData != null) {
+                excelFile.setData(fileData);
+                excelFileRepository.save(excelFile);
+            }
 
             status = ProcessStatus.DONE;
+
         } catch (Exception e) {
             status = ProcessStatus.ERROR;
-        } finally {
-            try {
-                book.close();
-                if (outputStream != null) {
-                    outputStream.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
         return status;
     }
