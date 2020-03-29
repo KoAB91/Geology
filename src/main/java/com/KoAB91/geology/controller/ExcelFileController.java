@@ -1,6 +1,7 @@
 package com.KoAB91.geology.controller;
 
 import com.KoAB91.geology.entity.ExcelFile;
+import com.KoAB91.geology.enums.ProcessStatus;
 import com.KoAB91.geology.service.ExcelFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -74,6 +75,19 @@ public class ExcelFileController {
         if (excelFile == null) {
             return ResponseEntity
                     .notFound()
+                    .build();
+        }
+
+        ProcessStatus processingStatus = excelFile.getProcessingStatus();
+        if (processingStatus == ProcessStatus.IN_PROGRESS) {
+            return ResponseEntity
+                    .status(HttpStatus.PROCESSING)
+                    .build();
+        }
+
+        if (processingStatus == ProcessStatus.ERROR) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .build();
         }
 
